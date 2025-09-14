@@ -98,25 +98,31 @@ class ControlPanel(QWidget):
         settings_layout.addLayout(humanize_layout)
         
         # Break settings
-        break_layout = QHBoxLayout()
+        break_layout = QVBoxLayout()
         
-        break_layout.addWidget(QLabel("Break Every:"))
+        # Break every
+        break_every_layout = QHBoxLayout()
+        break_every_layout.addWidget(QLabel("Break Every:"))
         
-        self.break_every_spin = QDoubleSpinBox()
-        self.break_every_spin.setRange(30, 600)
-        self.break_every_spin.setValue(self.config_manager.get('break_every_s', 180))
-        self.break_every_spin.setSuffix(" s")
-        self.break_every_spin.valueChanged.connect(self.on_break_every_changed)
-        break_layout.addWidget(self.break_every_spin)
+        # Use TimeSelector instead of QDoubleSpinBox
+        from ..components.time_selector import TimeSelector
+        self.break_every_selector = TimeSelector(label="", initial_seconds=self.config_manager.get('break_every_s', 180))
+        self.break_every_selector.setToolTip("Time between breaks")
+        self.break_every_selector.timeChanged.connect(self.on_break_every_changed)
+        break_every_layout.addWidget(self.break_every_selector)
+        break_every_layout.addStretch()
+        break_layout.addLayout(break_every_layout)
         
-        break_layout.addWidget(QLabel("Break Duration:"))
+        # Break duration
+        break_duration_layout = QHBoxLayout()
+        break_duration_layout.addWidget(QLabel("Break Duration:"))
         
-        self.break_duration_spin = QDoubleSpinBox()
-        self.break_duration_spin.setRange(1, 30)
-        self.break_duration_spin.setValue(self.config_manager.get('break_duration_s', 4))
-        self.break_duration_spin.setSuffix(" s")
-        self.break_duration_spin.valueChanged.connect(self.on_break_duration_changed)
-        break_layout.addWidget(self.break_duration_spin)
+        self.break_duration_selector = TimeSelector(label="", initial_seconds=self.config_manager.get('break_duration_s', 4))
+        self.break_duration_selector.setToolTip("Duration of each break")
+        self.break_duration_selector.timeChanged.connect(self.on_break_duration_changed)
+        break_duration_layout.addWidget(self.break_duration_selector)
+        break_duration_layout.addStretch()
+        break_layout.addLayout(break_duration_layout)
         
         settings_layout.addLayout(break_layout)
         
@@ -125,14 +131,21 @@ class ControlPanel(QWidget):
         
         runtime_layout.addWidget(QLabel("Max Runtime:"))
         
-        self.max_runtime_spin = QDoubleSpinBox()
-        self.max_runtime_spin.setRange(0, 86400)  # 0 to 24 hours
-        self.max_runtime_spin.setValue(self.config_manager.get('max_runtime_s', 0))
-        self.max_runtime_spin.setSuffix(" s")
-        self.max_runtime_spin.setSpecialValueText("Unlimited")
-        self.max_runtime_spin.valueChanged.connect(self.on_max_runtime_changed)
-        runtime_layout.addWidget(self.max_runtime_spin)
+        # Use TimeSelector instead of QDoubleSpinBox
+        from ..components.time_selector import TimeSelector
+        self.max_runtime_selector = TimeSelector(label="", initial_seconds=self.config_manager.get('max_runtime_s', 0))
+        self.max_runtime_selector.setToolTip("Maximum time the bot will run (0 = unlimited)")
+        self.max_runtime_selector.timeChanged.connect(self.on_max_runtime_changed)
+        runtime_layout.addWidget(self.max_runtime_selector)
         
+        # Add unlimited checkbox
+        self.unlimited_runtime_checkbox = QCheckBox("Unlimited")
+        self.unlimited_runtime_checkbox.setChecked(self.config_manager.get('max_runtime_s', 0) == 0)
+        self.unlimited_runtime_checkbox.toggled.connect(self.on_unlimited_runtime_toggled)
+        self.unlimited_runtime_checkbox.setToolTip("Run the bot without time limit")
+        runtime_layout.addWidget(self.unlimited_runtime_checkbox)
+        
+        runtime_layout.addStretch()
         settings_layout.addLayout(runtime_layout)
         
         # Add settings group to main layout
@@ -274,10 +287,26 @@ class ControlPanel(QWidget):
         """Handle max runtime value change"""
         if value == 0:
             logger.debug("Max runtime set to unlimited")
+            self.unlimited_runtime_checkbox.setChecked(True)
         else:
             logger.debug(f"Max runtime set to {value} seconds")
+            self.unlimited_runtime_checkbox.setChecked(False)
         
         self.config_manager.set('max_runtime_s', value)
+        
+    def on_unlimited_runtime_toggled(self, checked):
+        """Handle unlimited runtime checkbox toggle"""
+        if checked:
+            self.max_runtime_selector.set_time(0)
+            self.max_runtime_selector.setEnabled(False)
+            logger.debug("Max runtime set to unlimited")
+            self.config_manager.set('max_runtime_s', 0)
+        else:
+            self.max_runtime_selector.setEnabled(True)
+            # Only update if it's currently 0
+            if self.max_runtime_selector.get_time() == 0:
+                self.max_runtime_selector.set_time(3600)  # Default to 1 hour
+                self.config_manager.set('max_runtime_s', 3600)
     
     def on_debug_overlay_toggled(self, checked):
         """Handle debug overlay checkbox toggle"""

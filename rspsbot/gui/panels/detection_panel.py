@@ -13,6 +13,8 @@ from PyQt5.QtGui import QColor, QPalette
 
 from ...core.config import ColorSpec
 from ..components.screen_picker import ZoomColorPickerDialog
+from ..components.enhanced_color_editor import EnhancedColorEditor
+from ..components.advanced_roi_selector import AdvancedROISelector
 
 # Get module logger
 logger = logging.getLogger('rspsbot.gui.panels.detection_panel')

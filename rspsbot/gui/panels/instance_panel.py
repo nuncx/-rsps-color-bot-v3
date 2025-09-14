@@ -164,11 +164,11 @@ class InstancePanel(QWidget):
         delay_layout = QHBoxLayout()
         delay_layout.addWidget(QLabel("Delay:"))
         
-        self.token_delay_spin = QDoubleSpinBox()
-        self.token_delay_spin.setRange(0.1, 5.0)
-        self.token_delay_spin.setValue(1.0)
-        self.token_delay_spin.setSuffix(" s")
-        delay_layout.addWidget(self.token_delay_spin)
+        # Use TimeSelector instead of QDoubleSpinBox
+        from ..components.time_selector import TimeSelector
+        self.token_delay_selector = TimeSelector(label="", initial_seconds=self.config_manager.get('instance_token_delay', 1.0))
+        self.token_delay_selector.setToolTip("Time to wait between clicking the instance token and the teleport spot")
+        delay_layout.addWidget(self.token_delay_selector)
         
         delay_layout.addStretch()
         
@@ -208,11 +208,11 @@ class InstancePanel(QWidget):
         duration_layout = QHBoxLayout()
         duration_layout.addWidget(QLabel("Duration:"))
         
-        self.aggro_duration_spin = QDoubleSpinBox()
-        self.aggro_duration_spin.setRange(10.0, 600.0)
-        self.aggro_duration_spin.setValue(300.0)
-        self.aggro_duration_spin.setSuffix(" s")
-        duration_layout.addWidget(self.aggro_duration_spin)
+        # Use TimeSelector instead of QDoubleSpinBox
+        from ..components.time_selector import TimeSelector
+        self.aggro_duration_selector = TimeSelector(label="", initial_seconds=self.config_manager.get('aggro_duration', 300.0))
+        self.aggro_duration_selector.setToolTip("Duration of the aggro potion effect")
+        duration_layout.addWidget(self.aggro_duration_selector)
         
         duration_layout.addStretch()
         
@@ -284,7 +284,7 @@ class InstancePanel(QWidget):
             self.teleport_selector.set_coordinate(teleport_coord.x, teleport_coord.y)
         
         # Token delay
-        self.token_delay_spin.setValue(self.config_manager.get('instance_token_delay', 1.0))
+        self.token_delay_selector.set_time(self.config_manager.get('instance_token_delay', 1.0))
         
         # Aggro potion
         aggro_coord = self.config_manager.get_coordinate('aggro_potion_location')
@@ -292,7 +292,7 @@ class InstancePanel(QWidget):
             self.aggro_selector.set_coordinate(aggro_coord.x, aggro_coord.y)
         
         # Aggro duration
-        self.aggro_duration_spin.setValue(self.config_manager.get('aggro_duration', 300.0))
+        self.aggro_duration_selector.set_time(self.config_manager.get('aggro_duration', 300.0))
         
         # Visual check
         self.visual_check_checkbox.setChecked(self.config_manager.get('aggro_visual_check', True))
@@ -324,12 +324,18 @@ class InstancePanel(QWidget):
             QMessageBox.warning(self, "Warning", "Instance teleport location not set")
             return
         
+        # Get delay in minutes and seconds for display
+        delay_seconds = self.token_delay_selector.get_time()
+        delay_minutes = int(delay_seconds // 60)
+        delay_secs = int(delay_seconds % 60)
+        delay_str = f"{delay_minutes} min {delay_secs} sec" if delay_minutes > 0 else f"{delay_secs} sec"
+        
         QMessageBox.information(
             self,
             "Test Instance Entry",
             f"Instance entry sequence will be executed:\n\n"
             f"1. Click instance token at ({token_x}, {token_y})\n"
-            f"2. Wait {self.token_delay_spin.value()} seconds\n"
+            f"2. Wait {delay_str}\n"
             f"3. Click teleport at ({teleport_x}, {teleport_y})\n\n"
             "Note: This is just a test. The actual entry will not be executed."
         )
@@ -340,7 +346,7 @@ class InstancePanel(QWidget):
             # Get values
             token_x, token_y = self.token_selector.get_coordinate()
             teleport_x, teleport_y = self.teleport_selector.get_coordinate()
-            token_delay = self.token_delay_spin.value()
+            token_delay = self.token_delay_selector.get_time()
             
             # Create coordinates
             token_coord = Coordinate(token_x, token_y, "Instance Token")
@@ -373,11 +379,17 @@ class InstancePanel(QWidget):
             QMessageBox.warning(self, "Warning", "Aggro potion location not set")
             return
         
+        # Get duration in minutes and seconds for display
+        duration_seconds = self.aggro_duration_selector.get_time()
+        duration_minutes = int(duration_seconds // 60)
+        duration_secs = int(duration_seconds % 60)
+        duration_str = f"{duration_minutes} min {duration_secs} sec" if duration_minutes > 0 else f"{duration_secs} sec"
+        
         QMessageBox.information(
             self,
             "Test Aggro Potion",
             f"Aggro potion will be used at ({aggro_x}, {aggro_y}).\n\n"
-            f"Duration: {self.aggro_duration_spin.value()} seconds\n\n"
+            f"Duration: {duration_str}\n\n"
             "Note: This is just a test. The actual potion will not be used."
         )
     
@@ -386,7 +398,7 @@ class InstancePanel(QWidget):
         try:
             # Get values
             aggro_x, aggro_y = self.aggro_selector.get_coordinate()
-            aggro_duration = self.aggro_duration_spin.value()
+            aggro_duration = self.aggro_duration_selector.get_time()
             visual_check = self.visual_check_checkbox.isChecked()
             
             # Create coordinate

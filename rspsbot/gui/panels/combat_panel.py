@@ -131,13 +131,13 @@ class CombatPanel(QWidget):
         post_combat_layout.addWidget(self.post_combat_delay_max_spin, 1, 1)
         
         post_combat_layout.addWidget(QLabel("Combat Not Seen Timeout:"), 2, 0)
-        self.combat_timeout_spin = QDoubleSpinBox()
-        self.combat_timeout_spin.setRange(1.0, 30.0)
-        self.combat_timeout_spin.setSingleStep(0.5)
-        self.combat_timeout_spin.setValue(self.config_manager.get('combat_not_seen_timeout_s', 10.0))
-        self.combat_timeout_spin.setSuffix(" s")
-        self.combat_timeout_spin.valueChanged.connect(self.on_combat_timeout_changed)
-        post_combat_layout.addWidget(self.combat_timeout_spin, 2, 1)
+        
+        # Use TimeSelector instead of QDoubleSpinBox
+        from ..components.time_selector import TimeSelector
+        self.combat_timeout_selector = TimeSelector(label="", initial_seconds=self.config_manager.get('combat_not_seen_timeout_s', 10.0))
+        self.combat_timeout_selector.timeChanged.connect(self.on_combat_timeout_changed)
+        self.combat_timeout_selector.setToolTip("Time to wait after combat is not detected before considering combat to be over")
+        post_combat_layout.addWidget(self.combat_timeout_selector, 2, 1)
         
         timing_layout.addLayout(post_combat_layout)
         
