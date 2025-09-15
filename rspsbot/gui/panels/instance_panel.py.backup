@@ -216,7 +216,7 @@ class InstancePanel(QWidget):
         first_timer_layout.addWidget(QLabel("First Aggro Timer:"))
         
         from ..components.time_selector import TimeSelector
-        self.first_aggro_timer = TimeSelector(mode="min_sec_str")
+        self.first_aggro_timer = TimeSelector(mode="min_sec")
         self.first_aggro_timer.set_value(60)  # Default 1 minute
         first_timer_layout.addWidget(self.first_aggro_timer)
         
@@ -235,15 +235,18 @@ class InstancePanel(QWidget):
         regular_timer_layout = QHBoxLayout()
         regular_timer_layout.addWidget(QLabel("Regular Interval:"))
         
-        # Replace the QDoubleSpinBox with TimeSelector
-        self.aggro_duration_selector = TimeSelector(mode="min_sec_str")
+        self.aggro_duration_spin = QDoubleSpinBox()
+        self.aggro_duration_spin.setRange(10.0, 3600.0)
+        self.aggro_duration_spin.setDecimals(1)
+        self.aggro_duration_spin.setSingleStep(1.0)
         self.aggro_duration_spin.setValue(300.0)
+        self.aggro_duration_spin.setSuffix(" s")
         tooltip_helper.add_tooltip(
             self.aggro_duration_spin,
             "Regular Aggro Interval",
-            "Time between subsequent aggro potion uses after the first one. Format: minutes:seconds"
+            "Time between subsequent aggro potion uses after the first one"
         )
-        regular_timer_layout.addWidget(self.aggro_duration_selector)
+        regular_timer_layout.addWidget(self.aggro_duration_spin)
         
         duration_layout.addLayout(regular_timer_layout)
         
@@ -327,7 +330,7 @@ class InstancePanel(QWidget):
         self.first_aggro_timer.set_value(first_aggro_timer)
         
         # Regular aggro duration
-        self.aggro_duration_selector.set_value(self.config_manager.get("aggro_duration", 300))
+        self.aggro_duration_spin.setValue(self.config_manager.get('aggro_duration', 300.0))
         
         # Visual check
         self.visual_check_checkbox.setChecked(self.config_manager.get('aggro_visual_check', True))
@@ -422,7 +425,7 @@ class InstancePanel(QWidget):
             # Get values
             aggro_x, aggro_y = self.aggro_selector.get_coordinate()
             first_aggro_timer = self.first_aggro_timer.get_value()
-            aggro_duration = self.aggro_duration_selector.get_value()
+            aggro_duration = self.aggro_duration_spin.value()
             visual_check = self.visual_check_checkbox.isChecked()
             
             # Create coordinate

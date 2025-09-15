@@ -1,116 +1,152 @@
-#!/usr/bin/env python3
-"""
-RSPS Color Bot v3 - Main entry point
-
-This is the main entry point for the RSPS Color Bot application.
-It initializes the application, sets up logging, and starts the GUI.
-"""
 import sys
 import os
-import logging
-import argparse
-from pathlib import Path
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QCheckBox, QGroupBox, QHBoxLayout
+from PyQt5.QtCore import Qt
 
-# Add project root to path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
+# Add the project root to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Import after path setup
-from rspsbot.utils.logging import setup_logging
 from rspsbot.core.config import ConfigManager
-from rspsbot.gui.main_window import MainWindow
 from rspsbot.core.state import BotController
-
-# Setup argument parser
-def parse_arguments():
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description='RSPS Color Bot v3')
-    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    parser.add_argument('--profile', type=str, help='Load specific profile on startup')
-    parser.add_argument('--no-gui', action='store_true', help='Run without GUI (headless mode)')
-    parser.add_argument('--capture-test', action='store_true', help='Run a capture health check and a safe test click, then exit')
-    return parser.parse_args()
+from rspsbot.gui.main_windows.monster_mode_window import MonsterModeWindow
+from rspsbot.gui.main_windows.instance_mode_window import InstanceModeWindow
+from rspsbot.gui.components.tooltip_helper import TooltipHelper
 
 def main():
-    """Main entry point for the application"""
-    # Parse arguments
-    args = parse_arguments()
+    """Entry point for the RSPS Color Bot v3"""
+    app = QApplication(sys.argv)
     
-    # Setup logging
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logger = setup_logging(log_level)
-    logger.info("Starting RSPS Color Bot v3")
+    # Create config manager
+    config_manager = ConfigManager()
     
-    try:
-        # Initialize configuration
-        config_manager = ConfigManager()
-        
-        # Load profile if specified
-        if args.profile:
-            profile_path = os.path.join('profiles', f"{args.profile}")
-            if os.path.exists(profile_path):
-                logger.info(f"Loading profile: {args.profile}")
-                config_manager.load_profile(args.profile)
-            else:
-                logger.warning(f"Profile not found: {args.profile}")
-        
-        # Initialize bot controller
-        bot_controller = BotController(config_manager)
-        
-        # Start GUI or headless mode
-        if args.capture_test:
-            # Minimal capture test without GUI
-            from rspsbot.core.detection.capture import CaptureService
-            from rspsbot.core.detection.detector import ROIManager
-            logger.info("Running capture health check...")
-            cap = CaptureService()
-            roi_mgr = ROIManager(config_manager, cap)
-            roi = roi_mgr.get_active_roi()
-            stats = cap.capture_healthcheck(roi)
-            logger.info(f"Capture stats: mean={stats['mean']:.2f}, std={stats['std']:.2f}, nonzero_ratio={stats['nonzero_ratio']:.3f}")
-            # Simple heuristic: if nonzero_ratio is near 0, capture likely black
-            if stats['nonzero_ratio'] < 0.01 and stats['std'] < 1.0:
-                logger.warning("Capture appears black/blank. Keep display awake or prevent lock.")
-            # Perform a safe test click at ROI center via ActionManager's mouse controller (if available)
-            try:
-                am = bot_controller.action_manager
-                if am:
-                    cx = roi['left'] + roi['width'] // 2
-                    cy = roi['top'] + roi['height'] // 2
-                    logger.info(f"Test click at center: ({cx}, {cy})")
-                    # Use underlying mouse controller
-                    if hasattr(am, 'mouse_controller') and am.mouse_controller:
-                        am.mouse_controller.move_and_click(cx, cy)
-                    else:
-                        logger.warning("Mouse controller not available on ActionManager")
-                else:
-                    logger.warning("ActionManager unavailable; skipping test click")
-            except Exception as e:
-                logger.error(f"Test click failed: {e}")
-            sys.exit(0)
-        elif args.no_gui:
-            logger.info("Running in headless mode")
-            # TODO: Implement headless mode
-            raise NotImplementedError("Headless mode not yet implemented")
-        else:
-            # Import PyQt5 here to avoid dependency in headless mode
-            from PyQt5.QtWidgets import QApplication
-            
-            # Create application
-            app = QApplication(sys.argv)
-            app.setApplicationName("RSPS Color Bot v3")
-            
-            # Create and show main window
-            main_window = MainWindow(config_manager, bot_controller)
-            main_window.show()
-            
-            # Start event loop
-            logger.info("GUI initialized, entering main event loop")
-            sys.exit(app.exec_())
-            
-    except Exception as e:
-        logger.error(f"Fatal error: {e}", exc_info=True)
-        sys.exit(1)
+    # Create mode selection window
+    mode_window = QWidget()
+    mode_window.setWindowTitle("RSPS Color Bot v3 - Mode Selection")
+    mode_window.setGeometry(100, 100, 500, 400)
+    mode_layout = QVBoxLayout()
+    
+    # Add title label
+    title_label = QLabel("RSPS Color Bot v3")
+    title_label.setStyleSheet("font-size: 24px; font-weight: bold; margin: 20px; color: #2c3e50;")
+    title_label.setAlignment(Qt.AlignCenter)
+    mode_layout.addWidget(title_label)
+    
+    # Add subtitle
+    subtitle_label = QLabel("Select Bot Mode")
+    subtitle_label.setStyleSheet("font-size: 18px; margin: 10px; color: #34495e;")
+    subtitle_label.setAlignment(Qt.AlignCenter)
+    mode_layout.addWidget(subtitle_label)
+    
+    # Create tooltip helper
+    tooltip_helper = TooltipHelper()
+    
+    # Mode options group
+    mode_group = QGroupBox("Bot Modes")
+    mode_group_layout = QVBoxLayout()
+    
+    # Instance Only Mode toggle
+    instance_only_layout = QHBoxLayout()
+    instance_only_checkbox = QCheckBox("Instance Only Mode")
+    instance_only_checkbox.setChecked(config_manager.get('instance_only_mode', False))
+    instance_only_checkbox.toggled.connect(lambda checked: config_manager.set('instance_only_mode', checked))
+    
+    # Add tooltip
+    tooltip_helper.add_tooltip(
+        instance_only_checkbox,
+        "Instance Only Mode",
+        "Simplified mode that focuses only on aggro potion and instance teleport mechanics. Skips tile and monster detection."
+    )
+    
+    instance_only_layout.addWidget(instance_only_checkbox)
+    instance_only_layout.addStretch()
+    mode_group_layout.addLayout(instance_only_layout)
+    
+    # Add mode buttons
+    monster_mode_btn = QPushButton("Monster Mode")
+    instance_mode_btn = QPushButton("Instance Mode")
+    
+    # Set button styles
+    button_style = """
+        QPushButton {
+            padding: 15px;
+            font-size: 16px;
+            margin: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        QPushButton:hover {
+            background-color: #2980b9;
+        }
+        QPushButton:pressed {
+            background-color: #1c6ea4;
+        }
+    """
+    monster_mode_btn.setStyleSheet(button_style)
+    instance_mode_btn.setStyleSheet(button_style)
+    
+    # Add tooltips
+    tooltip_helper.add_tooltip(
+        monster_mode_btn,
+        "Monster Mode",
+        "Full bot mode with monster detection, combat, and all features"
+    )
+    
+    tooltip_helper.add_tooltip(
+        instance_mode_btn,
+        "Instance Mode",
+        "Instance-focused mode with aggro potion and teleport management"
+    )
+    
+    mode_group_layout.addWidget(monster_mode_btn)
+    mode_group_layout.addWidget(instance_mode_btn)
+    
+    mode_group.setLayout(mode_group_layout)
+    mode_layout.addWidget(mode_group)
+    
+    # Add functionality to buttons
+    def open_monster_mode():
+        mode_window.close()
+        # Create a dummy bot controller for GUI testing
+        class DummyBotController:
+            def __init__(self):
+                self.teleport_manager = None
+                self.potion_manager = None
+                self.stats_tracker = None
+                
+        bot_controller = DummyBotController()
+        monster_window = MonsterModeWindow(config_manager, bot_controller)
+        monster_window.show()
+        sys.exit(app.exec_())
+    
+    def open_instance_mode():
+        mode_window.close()
+        # Create a dummy bot controller for GUI testing
+        class DummyBotController:
+            def __init__(self):
+                self.teleport_manager = None
+                self.potion_manager = None
+                self.stats_tracker = None
+                
+        bot_controller = DummyBotController()
+        instance_window = InstanceModeWindow(config_manager, bot_controller)
+        instance_window.show()
+        sys.exit(app.exec_())
+    
+    monster_mode_btn.clicked.connect(open_monster_mode)
+    instance_mode_btn.clicked.connect(open_instance_mode)
+    
+    # Version info
+    version_label = QLabel("Version 3.0")
+    version_label.setStyleSheet("color: #7f8c8d; margin-top: 20px;")
+    version_label.setAlignment(Qt.AlignCenter)
+    mode_layout.addWidget(version_label)
+    
+    mode_window.setLayout(mode_layout)
+    mode_window.show()
+    
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()

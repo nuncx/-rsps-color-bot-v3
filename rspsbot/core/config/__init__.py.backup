@@ -290,33 +290,6 @@ class ConfigManager:
             "instance_token_delay": 1.0,
             "instance_only_mode": False,
             
-            # Anti-ban settings
-            "antiban_enabled": True,
-            "antiban_mouse_movement_min": 5.0,
-            "antiban_mouse_movement_max": 15.0,
-            "antiban_micro_movement_min": 1.0,
-            "antiban_micro_movement_max": 3.0,
-            "antiban_break_interval_min": 180.0,
-            "antiban_break_interval_max": 300.0,
-            "antiban_break_duration_min": 2.0,
-            "antiban_break_duration_max": 8.0,
-            "antiban_click_variation": 30.0,  # Percentage variation in click timing
-            
-            # Multi-monster mode settings
-            "monster_mode": "single",  # "single" or "multi"
-            "monster1_color": asdict(ColorSpec((0, 255, 0))),
-            "monster2_color": asdict(ColorSpec((255, 255, 0))),
-            "monster3_color": asdict(ColorSpec((0, 0, 255))),
-            "monster1_combat_style": "MELEE",  # "MELEE", "RANGED", or "MAGE"
-            "monster2_combat_style": "MELEE",
-            "monster3_combat_style": "MELEE",
-            
-            # Weapon detection settings
-            "weapon_roi": None,
-            "melee_weapon_color": asdict(ColorSpec((200, 200, 200))),
-            "ranged_weapon_color": asdict(ColorSpec((150, 150, 150))),
-            "mage_weapon_color": asdict(ColorSpec((100, 100, 100))),
-            
             # Timeout settings
             "no_monster_timeout": 180,
             "camera_adjust_interval": 10,
