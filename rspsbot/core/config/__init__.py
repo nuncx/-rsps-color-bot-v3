@@ -237,6 +237,16 @@ class ConfigManager:
             "break_every_s": 180.0,
             "break_duration_s": 4.0,
             "max_runtime_s": 0.0,
+            
+            # Anti-ban settings
+            "antiban_mouse_movement_min": 5.0,
+            "antiban_mouse_movement_max": 15.0,
+            "antiban_micro_movement_min": 1.0,
+            "antiban_micro_movement_max": 3.0,
+            "antiban_break_interval_min": 180.0,
+            "antiban_break_interval_max": 300.0,
+            "antiban_break_duration_min": 2.0,
+            "antiban_break_duration_max": 8.0,
 
             # Power management
             # Keep the system awake so the bot keeps running when the screen is off.
@@ -275,6 +285,10 @@ class ConfigManager:
             "aggro_effect_roi": None,
             "aggro_effect_color": asdict(ColorSpec((255, 0, 0))),
             "aggro_duration": 300,
+            "first_aggro_potion_timer": 60,
+            "aggro_visual_check": True,
+            "instance_token_delay": 1.0,
+            "instance_only_mode": False,
             
             # Timeout settings
             "no_monster_timeout": 180,

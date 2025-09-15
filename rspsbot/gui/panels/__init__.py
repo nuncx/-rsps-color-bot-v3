@@ -10,3 +10,4 @@ from .teleport_panel import TeleportPanel, CoordinateSelector
 from .potion_panel import PotionPanel, PotionDialog
 from .instance_panel import InstancePanel, ROISelector
 from .stats_panel import StatsPanel, StatsGraph
+from .monster_panel import MonsterPanel

@@ -207,22 +207,50 @@ class InstancePanel(QWidget):
         
         aggro_layout.addWidget(location_group)
         
-        # Aggro duration
-        duration_layout = QHBoxLayout()
-        duration_layout.addWidget(QLabel("Duration:"))
-
+        # Aggro duration settings
+        duration_group = QGroupBox("Aggro Potion Timers")
+        duration_layout = QVBoxLayout(duration_group)
+        
+        # First aggro potion timer
+        first_timer_layout = QHBoxLayout()
+        first_timer_layout.addWidget(QLabel("First Aggro Timer:"))
+        
+        from ..components.time_selector import TimeSelector
+        self.first_aggro_timer = TimeSelector(mode="min_sec")
+        self.first_aggro_timer.set_value(60)  # Default 1 minute
+        first_timer_layout.addWidget(self.first_aggro_timer)
+        
+        # Add tooltip
+        from ..components.tooltip_helper import TooltipHelper
+        tooltip_helper = TooltipHelper()
+        tooltip_helper.add_tooltip(
+            self.first_aggro_timer, 
+            "First Aggro Potion Timer", 
+            "Time to wait before using the first aggro potion. Format: minutes:seconds"
+        )
+        
+        duration_layout.addLayout(first_timer_layout)
+        
+        # Regular aggro duration
+        regular_timer_layout = QHBoxLayout()
+        regular_timer_layout.addWidget(QLabel("Regular Interval:"))
+        
         self.aggro_duration_spin = QDoubleSpinBox()
         self.aggro_duration_spin.setRange(10.0, 3600.0)
         self.aggro_duration_spin.setDecimals(1)
         self.aggro_duration_spin.setSingleStep(1.0)
         self.aggro_duration_spin.setValue(300.0)
         self.aggro_duration_spin.setSuffix(" s")
-        self.aggro_duration_spin.setToolTip("Expected duration of aggro potion effect.")
-        duration_layout.addWidget(self.aggro_duration_spin)
+        tooltip_helper.add_tooltip(
+            self.aggro_duration_spin,
+            "Regular Aggro Interval",
+            "Time between subsequent aggro potion uses after the first one"
+        )
+        regular_timer_layout.addWidget(self.aggro_duration_spin)
         
-        duration_layout.addStretch()
+        duration_layout.addLayout(regular_timer_layout)
         
-        aggro_layout.addLayout(duration_layout)
+        aggro_layout.addWidget(duration_group)
         
         # Aggro effect detection
         effect_group = QGroupBox("Effect Detection")
@@ -297,7 +325,11 @@ class InstancePanel(QWidget):
         if aggro_coord:
             self.aggro_selector.set_coordinate(aggro_coord.x, aggro_coord.y)
         
-        # Aggro duration
+        # First aggro timer
+        first_aggro_timer = self.config_manager.get('first_aggro_potion_timer', 60)
+        self.first_aggro_timer.set_value(first_aggro_timer)
+        
+        # Regular aggro duration
         self.aggro_duration_spin.setValue(self.config_manager.get('aggro_duration', 300.0))
         
         # Visual check
@@ -392,6 +424,7 @@ class InstancePanel(QWidget):
         try:
             # Get values
             aggro_x, aggro_y = self.aggro_selector.get_coordinate()
+            first_aggro_timer = self.first_aggro_timer.get_value()
             aggro_duration = self.aggro_duration_spin.value()
             visual_check = self.visual_check_checkbox.isChecked()
             
@@ -400,6 +433,7 @@ class InstancePanel(QWidget):
             
             # Save to config
             self.config_manager.set_coordinate('aggro_potion_location', aggro_coord)
+            self.config_manager.set('first_aggro_potion_timer', first_aggro_timer)
             self.config_manager.set('aggro_duration', aggro_duration)
             self.config_manager.set('aggro_visual_check', visual_check)
             
